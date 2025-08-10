@@ -40,7 +40,6 @@ MONGODB_URI = mongodb+srv://votre-username:votre-password@votre-cluster.mongodb.
 JWT_SECRET = votre-cle-secrete-jwt-minimum-32-caracteres
 JWT_EXPIRES_IN = 7d
 NODE_ENV = production
-PORT = 3000
 ```
 
 ⚠️ **IMPORTANT** : Utilisez vos vraies valeurs, pas les exemples !
