@@ -6,7 +6,9 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "seed": "node seed.js",
-    "showData": "node showData.js"
+    "showData": "node showData.js",
+    "build": "echo 'No build step required'",
+    "vercel-build": "echo 'Build completed'"
   },
   "keywords": [],
   "author": "",
