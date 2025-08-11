@@ -65,16 +65,32 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     console.log('POST /login reçu avec body :', req.body);
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) {
-      console.log('Aucun utilisateur trouvé pour cet email');
-      return res.status(400).json({ message: 'Email ou mot de passe incorrect' });
+    const { usernameOrEmail, password, email, username } = req.body;
+    
+    // Support pour les anciens formats (email/username) et nouveau format (usernameOrEmail)
+    const loginField = usernameOrEmail || email || username;
+    
+    if (!loginField || !password) {
+      return res.status(400).json({ message: 'Identifiant et mot de passe requis' });
     }
+    
+    // Chercher l'utilisateur par email OU username
+    const user = await User.findOne({
+      $or: [
+        { email: loginField },
+        { username: loginField }
+      ]
+    });
+    
+    if (!user) {
+      console.log('Aucun utilisateur trouvé pour:', loginField);
+      return res.status(400).json({ message: 'Identifiant ou mot de passe incorrect' });
+    }
+    
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.log('Mot de passe incorrect pour l\'utilisateur', email);
-      return res.status(400).json({ message: 'Email ou mot de passe incorrect' });
+      console.log('Mot de passe incorrect pour l\'utilisateur', loginField);
+      return res.status(400).json({ message: 'Identifiant ou mot de passe incorrect' });
     }
     const token = jwt.sign(
       { userId: user._id },
@@ -88,7 +104,8 @@ router.post('/login', async (req, res) => {
         id: user._id,
         email: user.email,
         name: user.name,
-        username: user.username
+        username: user.username,
+        role: user.role // Ajouter le rôle dans la réponse
       }
     };
     console.log('Réponse envoyée à /login :', response);

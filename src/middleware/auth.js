@@ -17,6 +17,7 @@ const authenticate = async (req, res, next) => {
     }
 
     req.user = user;
+    req.userId = user._id; // Ajouter userId pour la compatibilité
     next();
   } catch (error) {
     res.status(401).json({ message: 'Token invalide' });

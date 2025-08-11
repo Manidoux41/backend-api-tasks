@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -39,6 +40,7 @@ mongoose.connect(process.env.MONGO_URI)
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Route de test
 app.get('/', (req, res) => {

@@ -20,7 +20,10 @@ router.post('/', async (req, res) => {
       description,
       dueDate: new Date(dueDate),
       priority: priority || 'medium',
-      userId: req.user._id
+  userId: req.user._id,
+  // by default, a created task is unassigned
+  assignedTo: null,
+  assignedBy: null
     });
     await task.save();
     res.status(201).json({ message: 'Tâche créée avec succès', task });
@@ -30,17 +33,28 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Récupérer toutes les tâches de l'utilisateur
+// Récupérer toutes les tâches de l'utilisateur (ou toutes les tâches si admin)
 router.get('/', async (req, res) => {
   try {
     const { completed, priority, sortBy = 'dueDate' } = req.query;
-    let filter = { userId: req.user._id };
+    
+    // Si l'utilisateur est admin, il peut voir toutes les tâches
+    let filter = {};
+    if (req.user.role !== 'admin') {
+      // Un utilisateur standard voit les tâches qui lui sont attribuées ou qu'il a créées
+      filter.$or = [
+        { assignedTo: req.user._id },
+        { userId: req.user._id }
+      ];
+    }
+    
     if (completed !== undefined) {
       filter.completed = completed === 'true';
     }
     if (priority) {
       filter.priority = priority;
     }
+    
     const tasks = await Task.find(filter).sort({ [sortBy]: 1 });
     res.json({
       message: 'Tâches récupérées avec succès',
@@ -56,7 +70,17 @@ router.get('/', async (req, res) => {
 // Récupérer une tâche spécifique par ID
 router.get('/:id', async (req, res) => {
   try {
-    const task = await Task.findOne({ _id: req.params.id, userId: req.user._id });
+    const baseFilter = { _id: req.params.id };
+    let filter;
+    if (req.user.role === 'admin') {
+      filter = baseFilter; // admin peut voir n'importe quelle tâche
+    } else {
+      filter = { $and: [
+        baseFilter,
+        { $or: [ { assignedTo: req.user._id }, { userId: req.user._id } ] }
+      ]};
+    }
+    const task = await Task.findOne(filter);
     if (!task) {
       return res.status(404).json({ message: 'Tâche non trouvée' });
     }
@@ -70,7 +94,7 @@ router.get('/:id', async (req, res) => {
 // Mettre à jour une tâche
 router.put('/:id', async (req, res) => {
   try {
-    const { title, description, dueDate, priority, completed } = req.body;
+    const { title, description, dueDate, priority, completed, assignedTo } = req.body;
     const updateData = {};
     
     if (title !== undefined) updateData.title = title;
@@ -78,12 +102,20 @@ router.put('/:id', async (req, res) => {
     if (dueDate !== undefined) updateData.dueDate = new Date(dueDate);
     if (priority !== undefined) updateData.priority = priority;
     if (completed !== undefined) updateData.completed = completed;
+    if (assignedTo !== undefined) updateData.assignedTo = assignedTo || null;
     
-    const task = await Task.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user._id },
-      updateData,
-      { new: true }
-    );
+    // Admins can update any task (including reassign). Users can update only their own/assigned tasks
+    let filter;
+    if (req.user.role === 'admin') {
+      filter = { _id: req.params.id };
+      if (assignedTo !== undefined) {
+        updateData.assignedBy = req.user._id;
+      }
+    } else {
+      filter = { _id: req.params.id, $or: [ { userId: req.user._id }, { assignedTo: req.user._id } ] };
+    }
+
+    const task = await Task.findOneAndUpdate(filter, updateData, { new: true });
     
     if (!task) {
       return res.status(404).json({ message: 'Tâche non trouvée' });
