@@ -42,11 +42,36 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Route de health check
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK',
+    message: 'API is running',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Route de test d'API
+app.get('/api', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK',
+    message: 'API endpoints are accessible',
+    version: '1.1.2',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Route de test
 app.get('/', (req, res) => {
-  res.json({ 
-    message: 'API de gestion des tâches - Authentification et Tasks', 
-    version: '1.0.0',
+  res.status(200).json({ 
+    status: 'OK',
+    message: 'API de gestion des tâches - Backend fonctionnel', 
+    version: '1.1.2',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    database: 'Connected to MongoDB Atlas',
     endpoints: {
       auth: {
         register: 'POST /api/auth/register',
@@ -60,6 +85,12 @@ app.get('/', (req, res) => {
         delete: 'DELETE /api/tasks/:id',
         getByDate: 'GET /api/tasks/by-date/:date',
         markComplete: 'PATCH /api/tasks/:id/complete'
+      },
+      admin: {
+        users: 'GET /api/admin/users',
+        stats: 'GET /api/admin/stats',
+        assignTask: 'PUT /api/admin/tasks/:id/assign',
+        unassignTask: 'DELETE /api/admin/tasks/:id/assign'
       }
     }
   });

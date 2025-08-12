@@ -194,3 +194,4 @@ public/
 .env.development
 .env.staging
 .env.production
+.vercel
